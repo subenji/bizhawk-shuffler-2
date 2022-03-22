@@ -21,7 +21,7 @@ STATES_BACKUPS = 3
 DEFAULT_CMD_OUTPUT = 'shuffler-src/.cmd-output.txt'
 
 MIN_BIZHAWK_VERSION = "2.6.1"
-INCOMPATIBLE_BIZHAWK_VERSION = "2.6.3"
+INCOMPATIBLE_BIZHAWK_VERSION = "2.9.3" --arbitrary, currently the script works on 2.6.3-2.8.0 at time of writing
 RECOMMENDED_LUA_CORE = "LuaInterface"
 MAX_INTEGER = 99999999
 
@@ -234,6 +234,10 @@ function load_game(g)
 	local filename = GAMES_FOLDER .. '/' .. g
 	if not file_exists(filename) then return false end
 	client.openrom(filename)
+	update_next_swap_time()
+	running = true
+	frames_since_restart = 0
+	init_code()
 	return true
 end
 
@@ -388,6 +392,7 @@ function output_completed()
 		completed = completed .. strip_ext(game) .. '\n'
 	end
 	write_data('output-info/completed-games.txt', completed)
+	write_data('output-info/completed-games-num.txt', #config.completed_games ..'\n')
 end
 
 function mark_complete()
@@ -471,6 +476,7 @@ function complete_setup()
 	if config.frame_count == 0 then
 		log_message('deleting savestates!')
 		delete_savestates()
+		make_dir(STATES_FOLDER)
 	end
 
 	-- whatever the current state is, update the output file
@@ -499,7 +505,7 @@ check_lua_core()
 -- load primary configuration
 load_config('shuffler-src/config.lua')
 
-if emu.getsystemid() ~= "NULL" then
+function init_code()
 	-- THIS CODE RUNS EVERY TIME THE SCRIPT RESTARTS
 	-- which is specifically after a call to client.openrom()
 
@@ -531,7 +537,7 @@ if emu.getsystemid() ~= "NULL" then
 	write_data('output-info/current-game.txt', strip_ext(config.current_game))
 
 	-- this code just outright crashes on Bizhawk 2.6.1, go figure
-	if checkversion("2.6.2") then
+	if checkversion("MIN_BIZHAWK_VERSION") then
 		gui.use_surface('client')
 		gui.clearGraphics()
 	end
@@ -545,6 +551,10 @@ if emu.getsystemid() ~= "NULL" then
 			plugin.on_game_load(pdata.state, pdata.settings)
 		end
 	end
+end
+
+if emu.getsystemid() ~= "NULL" then
+	init_code()
 else
 	-- THIS CODE RUNS ONLY ON THE INITIAL SCRIPT SETUP
 	client.displaymessages(false)
@@ -556,6 +566,7 @@ else
 	elseif checkversion(MIN_BIZHAWK_VERSION) then
 		local setup = require('shuffler-src.setupform')
 		setup.initial_setup(complete_setup)
+		init_code()
 	else
 		log_message(string.format("Expected Bizhawk version %s+", MIN_BIZHAWK_VERSION))
 		log_message("-- Currently installed version: " .. client.getversion())
@@ -571,7 +582,7 @@ local ptime_game = nil
 while true do
 	if emu.getsystemid() ~= "NULL" and running then
 		-- wait for a frame to pass before turning sound back on
-		if frames_since_restart == 1 and config.sound then client.SetSoundOn(true) end
+		if frames_since_restart >= 1 and config.sound and client.GetSoundOn() == false then client.SetSoundOn(true) end
 
 		local frame_count = (config.frame_count or 0) + 1
 		config.frame_count = frame_count
