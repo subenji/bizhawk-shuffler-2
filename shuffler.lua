@@ -303,7 +303,7 @@ function swap_game(next_game)
 	running = false
 
 	-- mute the sound for a moment to help with the swap
-	config.sound = client.GetSoundOn()
+	if config.sound == nil then config.sound = client.GetSoundOn() end
 	client.SetSoundOn(false)
 
 	-- force another frame to pass to get the mute to take effect
@@ -561,8 +561,8 @@ else
 	if checkversion(INCOMPATIBLE_BIZHAWK_VERSION) then
 		log_message(string.format("BizHawk versions %s+ are currently not supported", INCOMPATIBLE_BIZHAWK_VERSION))
 		log_message("-- Currently installed version: " .. client.getversion())
-		log_message("-- Please use BizHawk 2.6.2 for now")
-		log_message("   https://github.com/TASVideos/BizHawk/releases/tag/2.6.2")
+		log_message("-- Please use BizHawk 2.6.3+ for now")
+		log_message("   https://github.com/TASVideos/BizHawk/releases/tag/2.8")
 	elseif checkversion(MIN_BIZHAWK_VERSION) then
 		local setup = require('shuffler-src.setupform')
 		setup.initial_setup(complete_setup)
@@ -582,7 +582,10 @@ local ptime_game = nil
 while true do
 	if emu.getsystemid() ~= "NULL" and running then
 		-- wait for a frame to pass before turning sound back on
-		if frames_since_restart >= 1 and config.sound and client.GetSoundOn() == false then client.SetSoundOn(true) end
+		if frames_since_restart >= 1 and config.sound ~= nil then
+			client.SetSoundOn(config.sound)
+			config.sound = nil
+		end
 
 		local frame_count = (config.frame_count or 0) + 1
 		config.frame_count = frame_count
