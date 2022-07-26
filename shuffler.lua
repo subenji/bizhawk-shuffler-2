@@ -85,6 +85,9 @@ end
 
 -- saves primary config file
 function save_config(config, f)
+    os.remove(f..'.bak')
+    os.rename(f, f..'.bak')
+
 	write_data(f, 'config=\n'..dump(config))
 end
 
@@ -196,7 +199,10 @@ end
 
 function get_savestate_file(game)
 	game = game or config.current_game
-	if game == nil then error('no game specified for savestate file') end
+	if game == nil then 
+        error('no game specified for savestate file')
+        error ('...try restoring config.lua from the backup')
+    end
 	return string.format("%s/%s.state", STATES_FOLDER, game)
 end
 

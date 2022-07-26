@@ -1,5 +1,5 @@
 games/*
-outout-info/*
+output-info/*
 shuffler-src/config.lua
 shuffler-src/.cmd-output.txt
 message.log
